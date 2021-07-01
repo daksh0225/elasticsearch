@@ -502,7 +502,15 @@ public class RestController implements HttpServerTransport.Dispatcher {
         @Override
         public void sendResponse(RestResponse response) {
             close();
-            delegate.sendResponse(response);
+            String stringResponse = response.content().utf8ToString();
+            if(stringResponse.contains("global_index_")){
+                stringResponse = stringResponse.replaceAll("global_index_", "");
+            }
+            if(stringResponse.contains("sandbox_index_")){
+                stringResponse = stringResponse.replaceAll("sandbox_index_.{23}", "");
+            }
+            BytesRestResponse resp = new BytesRestResponse(response.status(), response.contentType(), stringResponse);
+            delegate.sendResponse(resp);
         }
 
         private void close() {

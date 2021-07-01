@@ -524,6 +524,11 @@ public class RestControllerTests extends ESTestCase {
             }
 
             @Override
+            public void updateContent(BytesReference content) {
+                //do nothing
+            }
+
+            @Override
             public Map<String, List<String>> getHeaders() {
                 Map<String, List<String>> headers = new HashMap<>();
                 if (hasContent) {

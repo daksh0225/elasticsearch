@@ -52,6 +52,8 @@ public interface HttpRequest {
 
     BytesReference content();
 
+    void updateContent(BytesReference content);
+
     /**
      * Get all of the headers and values associated with the headers. Modifications of this map are not supported.
      */

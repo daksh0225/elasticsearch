@@ -37,9 +37,9 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import static org.elasticsearch.mock.orig.Mockito.mock;
 import static org.hamcrest.core.StringContains.containsString;
 import static org.hamcrest.object.HasToString.hasToString;
-import static org.mockito.Mockito.mock;
 
 public class BaseRestHandlerTests extends ESTestCase {
 
@@ -351,5 +351,4 @@ public class BaseRestHandlerTests extends ESTestCase {
             assertFalse(executed.get());
         }
     }
-
 }

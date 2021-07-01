@@ -17,7 +17,7 @@
  * under the License.
  */
 
-package org.elasticsearch.rest.action.cat;
+package org.elasticsearch.sandboxhandler;
 
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.ActionResponse;
@@ -46,17 +46,20 @@ import org.elasticsearch.index.IndexSettings;
 import org.elasticsearch.rest.RestRequest;
 import org.elasticsearch.rest.RestResponse;
 import org.elasticsearch.rest.action.RestResponseListener;
+import org.elasticsearch.rest.action.cat.AbstractCatAction;
+import org.elasticsearch.rest.action.cat.RestTable;
 
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.util.Collection;
-import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.HashSet;
+import java.util.Collections;
+import java.util.Arrays;
+import java.util.Locale;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
@@ -66,26 +69,25 @@ import static java.util.Collections.unmodifiableList;
 import static org.elasticsearch.action.support.master.MasterNodeRequest.DEFAULT_MASTER_NODE_TIMEOUT;
 import static org.elasticsearch.rest.RestRequest.Method.GET;
 
-public class RestIndicesAction extends AbstractCatAction {
+public class SandboxIndicesAction extends AbstractCatAction {
 
     private static final DateFormatter STRICT_DATE_TIME_FORMATTER = DateFormatter.forPattern("strict_date_time");
     private String sandboxId = null;
+
     @Override
     public List<Route> routes() {
         return unmodifiableList(asList(
-            new Route(GET, "/_cat/indices"),
-            new Route(GET, "/_cat/indices/{index}")));
+            new Route(GET, "/_sandbox/indices")));
     }
 
     @Override
     public String getName() {
-        return "cat_indices_action";
+        return "sandbox_indices_action";
     }
 
     @Override
     protected void documentation(StringBuilder sb) {
-        sb.append("/_cat/indices\n");
-        sb.append("/_cat/indices/{index}\n");
+        sb.append("/_sandbox/indices\n");
     }
 
     @Override
@@ -96,10 +98,10 @@ public class RestIndicesAction extends AbstractCatAction {
         final TimeValue masterNodeTimeout = request.paramAsTime("master_timeout", DEFAULT_MASTER_NODE_TIMEOUT);
         final boolean includeUnloadedSegments = request.paramAsBoolean("include_unloaded_segments", false);
 
-        if(request.getHeaders().containsKey("Sandbox"))
-            sandboxId = request.getHeaders().get("Sandbox").get(0);
-        else
-            sandboxId = null;
+        if(!request.getHeaders().containsKey("Sandbox")){
+            throw new IllegalArgumentException("No Sandbox Id provided");
+        }
+        sandboxId = request.getHeaders().get("Sandbox").get(0);
 
         return channel -> {
             final ActionListener<Table> listener = ActionListener.notifyOnce(new RestResponseListener<Table>(channel) {
@@ -249,7 +251,8 @@ public class RestIndicesAction extends AbstractCatAction {
 
     static {
         final Set<String> responseParams = new HashSet<>(asList("local", "health"));
-        responseParams.addAll(AbstractCatAction.RESPONSE_PARAMS);
+        responseParams.addAll(Collections.unmodifiableSet(
+            new HashSet<>(Arrays.asList("format", "h", "v", "ts", "pri", "bytes", "size", "time", "s"))));
         RESPONSE_PARAMS = Collections.unmodifiableSet(responseParams);
     }
 
@@ -471,10 +474,10 @@ public class RestIndicesAction extends AbstractCatAction {
 
         table.addCell("segments.fixed_bitset_memory",
             "sibling:pri;alias:sfbm,fixedBitsetMemory;default:false;text-align:right;desc:memory used by fixed bit sets for" +
-            " nested object field types and type filters for types referred in _parent fields");
+                " nested object field types and type filters for types referred in _parent fields");
         table.addCell("pri.segments.fixed_bitset_memory",
             "default:false;text-align:right;desc:memory used by fixed bit sets for nested object" +
-            " field types and type filters for types referred in _parent fields");
+                " field types and type filters for types referred in _parent fields");
 
         table.addCell("warmer.current", "sibling:pri;alias:wc,warmerCurrent;default:false;text-align:right;desc:current warmer ops");
         table.addCell("pri.warmer.current", "default:false;text-align:right;desc:current warmer ops");
@@ -505,13 +508,6 @@ public class RestIndicesAction extends AbstractCatAction {
         return table;
     }
 
-    Table buildTable(final RestRequest request,
-                     final Map<String, Settings> indicesSettings,
-                     final Map<String, ClusterIndexHealth> indicesHealths,
-                     final Map<String, IndexStats> indicesStats,
-                     final Map<String, IndexMetaData> indicesMetaDatas){
-        return buildTable(request, indicesSettings, indicesHealths, indicesStats, indicesMetaDatas, null);
-    }
     // package private for testing
     Table buildTable(final RestRequest request,
                      final Map<String, Settings> indicesSettings,
@@ -524,19 +520,14 @@ public class RestIndicesAction extends AbstractCatAction {
         final Table table = getTableWithHeader(request);
 
         indicesSettings.forEach((indexName, settings) -> {
+            if(!indexName.contains(sandboxId)){
+                //This index does not correspond to this sandbox
+                return;
+            }
             if (indicesMetaDatas.containsKey(indexName) == false) {
                 // the index exists in the Get Indices response but is not present in the cluster state:
                 // it is likely that the index was deleted in the meanwhile, so we ignore it.
                 return;
-            }
-
-            if(sandboxId != null){
-                if(!indexName.contains(sandboxId))
-                    return;
-            }
-            else{
-                if(indexName.contains("sandbox_index_"))
-                    return;
             }
 
             final IndexMetaData indexMetaData = indicesMetaDatas.get(indexName);
