@@ -47,7 +47,7 @@ import java.util.stream.Collectors;
 public class NioHttpRequest implements HttpRequest {
 
     private final FullHttpRequest request;
-    private final BytesReference content;
+    private BytesReference content;
     private final HttpHeadersMap headers;
     private final int sequence;
     private final AtomicBoolean released;
@@ -109,6 +109,11 @@ public class NioHttpRequest implements HttpRequest {
     @Override
     public String uri() {
         return request.uri();
+    }
+
+    @Override
+    public void updateContent(BytesReference content){
+        this.content = content;
     }
 
     @Override

@@ -39,6 +39,10 @@ public interface RestHandler {
      */
     void handleRequest(RestRequest request, RestChannel channel, NodeClient client) throws Exception;
 
+    default RestRequest handleIndicesName(RestRequest request, NodeClient client) throws Exception{
+        return request;
+    };
+
     default boolean canTripCircuitBreaker() {
         return true;
     }

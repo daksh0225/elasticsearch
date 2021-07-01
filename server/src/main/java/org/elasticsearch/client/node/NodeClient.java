@@ -27,13 +27,17 @@ import org.elasticsearch.action.support.TransportAction;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.client.support.AbstractClient;
 import org.elasticsearch.cluster.node.DiscoveryNode;
+import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.tasks.Task;
 import org.elasticsearch.tasks.TaskListener;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.RemoteClusterService;
 
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Supplier;
 
 /**
@@ -48,6 +52,9 @@ public class NodeClient extends AbstractClient {
      */
     private Supplier<String> localNodeId;
     private RemoteClusterService remoteClusterService;
+    private boolean sandboxEnabled;
+    private Set<String> sandboxStore;
+    private Map<String, Set<String>> sandboxIndices;
 
     public NodeClient(Settings settings, ThreadPool threadPool) {
         super(settings, threadPool);
@@ -58,7 +65,33 @@ public class NodeClient extends AbstractClient {
         this.actions = actions;
         this.localNodeId = localNodeId;
         this.remoteClusterService = remoteClusterService;
+        this.sandboxEnabled = true;
+        this.sandboxStore = new HashSet<>();
+        this.sandboxIndices = new HashMap<>();
     }
+
+    public synchronized boolean getSandboxEnabled(){
+        return sandboxEnabled;
+    }
+
+    public synchronized String getSandboxId(){
+        String sandboxId = UUIDs.randomBase64UUID().toLowerCase();
+        sandboxStore.add(sandboxId);
+        sandboxIndices.put(sandboxId, new HashSet<>());
+        return sandboxId;
+    }
+
+    public synchronized void addSandboxIndex(String sandbox, String index){
+        sandboxIndices.get(sandbox).add(index);
+    }
+
+    public synchronized Boolean sandboxContains(String sandboxId){
+        return sandboxStore.contains(sandboxId);
+    }
+
+    public synchronized Set<String> getSandboxName() { return sandboxStore; }
+
+    public synchronized Map<String, Set<String>> getSandboxIndices() { return sandboxIndices; }
 
     @Override
     public void close() {
