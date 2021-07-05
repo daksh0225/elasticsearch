@@ -44,6 +44,8 @@ import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.concurrent.atomic.LongAdder;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 /**
@@ -94,7 +96,7 @@ public abstract class BaseRestHandler implements RestHandler {
     @Override
     public final void handleRequest(RestRequest request, RestChannel channel, NodeClient client) throws Exception {
         // prepare the request for execution; has the side effect of touching the request parameters
-        request = handleIndicesName(request, client);
+        request = handleIndicesName(request, client, handleSandboxHeader(request, client));
         final RestChannelConsumer action = prepareRequest(request, client);
 
         // validate unconsumed params, but we must exclude params used to format the response
@@ -119,16 +121,21 @@ public abstract class BaseRestHandler implements RestHandler {
         action.accept(channel);
     }
 
+    public String handleSandboxHeader(RestRequest request, NodeClient client){
+        if(request.getHeaders().containsKey("Sandbox")){
+            String sandboxId = request.getHeaders().get("Sandbox").get(0);
+            if(!client.sandboxContains(sandboxId))
+                throw new IllegalArgumentException("Invalid Sandbox Id provided");
+            return sandboxId;
+        }
+        else
+            return null;
+    }
+
     @Override
-    public RestRequest handleIndicesName(RestRequest request, NodeClient client){
+    public RestRequest handleIndicesName(RestRequest request, NodeClient client, String sandboxId){
         if(request.params().containsKey("index")) {
             String[] indices = Strings.splitStringByCommaToArray(request.params().get("index"));
-            String sandboxId = null;
-            if(client.getSandboxEnabled() && request.getHeaders().containsKey("Sandbox")){
-                sandboxId = request.getHeaders().get("Sandbox").get(0);
-                if(!client.sandboxContains(sandboxId))
-                    throw new IllegalArgumentException("Invalid Sandbox Id provided");
-            }
             for(int i=0;i<indices.length;i++){
                 String clusterName = null;
                 if(indices[i].contains(":")) {
@@ -154,16 +161,19 @@ public abstract class BaseRestHandler implements RestHandler {
         BytesReference content = request.content();
         String contentString = content.utf8ToString();
         if(contentString.contains("\"_index\":") || contentString.contains("\"_index\" :")){
-            String sandboxId = null;
-            if(client.getSandboxEnabled() && request.getHeaders().containsKey("Sandbox")){
-                sandboxId = request.getHeaders().get("Sandbox").get(0);
-                if(!client.sandboxContains(sandboxId))
-                    throw new IllegalArgumentException("Invalid Sandbox Id provided");
-            }
             if(sandboxId == null)
                 contentString = contentString.replaceAll("(\"_index\".*:)(.*\")(.*\",)", "$1$2global_index_$3");
-            else
-                contentString = contentString.replaceAll("(\"_index\".*:)(.*\")(.*\",)", "$1$2sandbox_index_"+sandboxId+"_$3");
+            else {
+                List<String> allMatches = new ArrayList<>();
+                Matcher m = Pattern.compile("(\"_index\".*:)(.*\")(.*\",)").matcher(contentString);
+                while(m.find()){
+                    allMatches.add(m.group(3).replace("\",", ""));
+                }
+                for(String index: allMatches){
+                    client.addSandboxIndex(sandboxId, index);
+                }
+                contentString = contentString.replaceAll("(\"_index\".*:)(.*\")(.*\",)", "$1$2sandbox_index_" + sandboxId + "_$3");
+            }
             request.updateContent(new BytesArray(contentString));
         }
         return request;

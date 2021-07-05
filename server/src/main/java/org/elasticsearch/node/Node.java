@@ -823,6 +823,8 @@ public class Node implements Closeable {
         }
         logger.info("stopping ...");
 
+        injector.getInstance(NodeClient.class).stop();
+
         injector.getInstance(ResourceWatcherService.class).stop();
         injector.getInstance(HttpServerTransport.class).stop();
 

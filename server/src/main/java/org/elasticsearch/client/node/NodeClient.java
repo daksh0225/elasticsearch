@@ -23,6 +23,7 @@ import org.elasticsearch.action.ActionType;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.ActionRequest;
 import org.elasticsearch.action.ActionResponse;
+import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
 import org.elasticsearch.action.support.TransportAction;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.client.support.AbstractClient;
@@ -38,6 +39,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.Locale;
 import java.util.function.Supplier;
 
 /**
@@ -75,7 +77,7 @@ public class NodeClient extends AbstractClient {
     }
 
     public synchronized String getSandboxId(){
-        String sandboxId = UUIDs.randomBase64UUID().toLowerCase();
+        String sandboxId = UUIDs.randomBase64UUID().toLowerCase(Locale.ROOT);
         sandboxStore.add(sandboxId);
         sandboxIndices.put(sandboxId, new HashSet<>());
         return sandboxId;
@@ -92,6 +94,21 @@ public class NodeClient extends AbstractClient {
     public synchronized Set<String> getSandboxName() { return sandboxStore; }
 
     public synchronized Map<String, Set<String>> getSandboxIndices() { return sandboxIndices; }
+
+    public synchronized void removeSandboxes(){
+        for(Map.Entry<String, Set<String>> entry: sandboxIndices.entrySet()){
+            String sandboxId = entry.getKey();
+            Set<String> indices = entry.getValue();
+            for(String index: indices){
+                this.admin().indices().delete(new DeleteIndexRequest("sandbox_index_"+sandboxId+"_"+index));
+            }
+        }
+        sandboxIndices.clear();
+    }
+
+    public void stop(){
+        removeSandboxes();
+    }
 
     @Override
     public void close() {

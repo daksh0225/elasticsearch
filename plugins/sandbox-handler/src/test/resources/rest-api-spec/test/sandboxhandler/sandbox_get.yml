@@ -1,0 +1,6 @@
+---
+"Get sandbox id":
+  - do:
+      sandbox.get: {}
+
+  - match: { sandboxId:   '/.{22}/' }

@@ -341,11 +341,7 @@ public class IndicesService extends AbstractLifecycleComponent
         for (final Index index : indices) {
             indicesStopExecutor.execute(() -> {
                 try {
-                    if(index.getName().contains("global_index"))
-                        removeIndex(index, IndexRemovalReason.NO_LONGER_ASSIGNED, "shutdown");
-                    else if(index.getName().contains("sandbox_index_")){
-                        removeIndex(index, IndexRemovalReason.DELETED, "shutdown");
-                    }
+                    removeIndex(index, IndexRemovalReason.NO_LONGER_ASSIGNED, "shutdown");
                 } finally {
                     latch.countDown();
                 }

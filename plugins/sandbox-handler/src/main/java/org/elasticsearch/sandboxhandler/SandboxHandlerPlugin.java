@@ -30,10 +30,9 @@ import org.elasticsearch.plugins.Plugin;
 import org.elasticsearch.rest.RestController;
 import org.elasticsearch.rest.RestHandler;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Supplier;
-
-import static java.util.Collections.singletonList;
 
 public class SandboxHandlerPlugin extends Plugin implements ActionPlugin {
     @Override
@@ -44,7 +43,9 @@ public class SandboxHandlerPlugin extends Plugin implements ActionPlugin {
                                              final SettingsFilter settingsFilter,
                                              final IndexNameExpressionResolver indexNameExpressionResolver,
                                              final Supplier<DiscoveryNodes> nodesInCluster) {
-
-        return singletonList(new org.elasticsearch.sandboxhandler.SandboxAction());
+        ArrayList<RestHandler> list = new ArrayList<>();
+        list.add(new SandboxAction());
+        list.add(new SandboxIndicesAction());
+        return list;
     }
 }
