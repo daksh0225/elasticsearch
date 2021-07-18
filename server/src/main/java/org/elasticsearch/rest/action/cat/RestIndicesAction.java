@@ -518,7 +518,7 @@ public class RestIndicesAction extends AbstractCatAction {
                      final Map<String, ClusterIndexHealth> indicesHealths,
                      final Map<String, IndexStats> indicesStats,
                      final Map<String, IndexMetaData> indicesMetaDatas,
-                     String sandboxId) {
+                     final String sandboxId) {
 
         final String healthParam = request.param("health");
         final Table table = getTableWithHeader(request);

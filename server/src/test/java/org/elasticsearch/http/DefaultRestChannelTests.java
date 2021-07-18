@@ -437,6 +437,11 @@ public class DefaultRestChannelTests extends ESTestCase {
         }
 
         @Override
+        public void updateContent(BytesReference content) {
+            //do nothing
+        }
+
+        @Override
         public Map<String, List<String>> getHeaders() {
             return headers;
         }

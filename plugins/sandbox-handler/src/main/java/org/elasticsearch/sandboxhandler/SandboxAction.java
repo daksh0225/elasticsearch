@@ -19,6 +19,11 @@
 
 package org.elasticsearch.sandboxhandler;
 
+import org.elasticsearch.action.ActionFuture;
+import org.elasticsearch.action.get.GetRequest;
+import org.elasticsearch.action.index.IndexRequest;
+import org.elasticsearch.action.search.SearchRequest;
+import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.client.node.NodeClient;
 import org.elasticsearch.common.Table;
 import org.elasticsearch.common.xcontent.XContentBuilder;
@@ -26,6 +31,7 @@ import org.elasticsearch.rest.BytesRestResponse;
 import org.elasticsearch.rest.RestRequest;
 import org.elasticsearch.rest.RestStatus;
 import org.elasticsearch.rest.action.cat.AbstractCatAction;
+import org.elasticsearch.search.SearchHit;
 
 import java.util.List;
 
@@ -43,7 +49,6 @@ public class SandboxAction extends AbstractCatAction {
     public List<Route> routes() {
         return unmodifiableList(asList(
             new Route(GET, "/_sandbox/get")));
-//            new Route(POST, "/_cat/example")));
     }
 
     @Override
@@ -54,6 +59,13 @@ public class SandboxAction extends AbstractCatAction {
                 if(client.getSandboxEnabled()){
                     String sandboxName = client.getSandboxId();
                     builder.startObject().field("sandboxId", sandboxName).endObject();
+
+                    if(client.settings().getAsBoolean("sandbox.persist", false)) {
+                        IndexRequest indexRequest = new IndexRequest("global_index_sandboxes");
+                        indexRequest.source("sandboxId", sandboxName);
+                        indexRequest.setRefreshPolicy("");
+                        client.index(indexRequest);
+                    }
                 }
                 else {
                     builder.startObject().field("Message", "Sandboxing not enabled on this node").endObject();

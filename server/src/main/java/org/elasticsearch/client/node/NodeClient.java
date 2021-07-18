@@ -19,17 +19,17 @@
 
 package org.elasticsearch.client.node;
 
-import org.elasticsearch.action.ActionType;
-import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.action.ActionRequest;
-import org.elasticsearch.action.ActionResponse;
+import org.elasticsearch.action.*;
 import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
+import org.elasticsearch.action.search.SearchRequest;
+import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.action.support.TransportAction;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.client.support.AbstractClient;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.search.SearchHit;
 import org.elasticsearch.tasks.Task;
 import org.elasticsearch.tasks.TaskListener;
 import org.elasticsearch.threadpool.ThreadPool;
@@ -57,6 +57,7 @@ public class NodeClient extends AbstractClient {
     private boolean sandboxEnabled;
     private Set<String> sandboxStore;
     private Map<String, Set<String>> sandboxIndices;
+    private boolean sandboxLoaded;
 
     public NodeClient(Settings settings, ThreadPool threadPool) {
         super(settings, threadPool);
@@ -70,6 +71,28 @@ public class NodeClient extends AbstractClient {
         this.sandboxEnabled = true;
         this.sandboxStore = new HashSet<>();
         this.sandboxIndices = new HashMap<>();
+        this.sandboxLoaded = false;
+    }
+
+    public synchronized void loadSandboxes(){
+        try {
+            ActionFuture<SearchResponse> response = search(new SearchRequest("global_index_sandboxes"));
+            SearchResponse searchResponse = response.get();
+            if (searchResponse != null) {
+                SearchHit[] hits = searchResponse.getInternalResponse().hits().getHits();
+                for (SearchHit hit : hits) {
+                    String source = hit.getSourceAsString();
+                    if (source != null) {
+                        String sandboxId = source.substring(14, 36);
+                        sandboxStore.add(sandboxId);
+                        sandboxIndices.put(sandboxId, new HashSet<>());
+                    }
+                }
+            }
+        }
+        catch (Exception e){
+            System.err.println(e.getMessage());
+        }
     }
 
     public synchronized boolean getSandboxEnabled(){
@@ -88,6 +111,10 @@ public class NodeClient extends AbstractClient {
     }
 
     public synchronized Boolean sandboxContains(String sandboxId){
+        if(!sandboxLoaded && settings.getAsBoolean("sandbox.persist", false)) {
+            loadSandboxes();
+            sandboxLoaded = true;
+        }
         return sandboxStore.contains(sandboxId);
     }
 
@@ -107,7 +134,8 @@ public class NodeClient extends AbstractClient {
     }
 
     public void stop(){
-        removeSandboxes();
+        if(!settings.getAsBoolean("sandbox.persist", false))
+            removeSandboxes();
     }
 
     @Override
