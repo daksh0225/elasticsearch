@@ -36,7 +36,7 @@ public class SandboxSettingsConfig {
     public SandboxSettingsConfig(final Environment environment){
         final Path configDir = environment.configFile();
 
-        final Path sandboxSettingsYamlFile = configDir.resolve("sandbox-settings.yml");
+        final Path sandboxSettingsYamlFile = configDir.resolve("elasticsearch.yml");
 
         final Settings customSettings;
         try {

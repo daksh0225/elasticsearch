@@ -158,11 +158,12 @@ public abstract class BaseRestHandler implements RestHandler {
             String newIndexParam = Strings.arrayToCommaDelimitedString(indices);
             request.params().replace("index", newIndexParam);
         }
-        BytesReference content = request.content();
+        BytesReference content = request.content(false);
         String contentString = content.utf8ToString();
         if(contentString.contains("\"_index\":") || contentString.contains("\"_index\" :")){
-            if(sandboxId == null)
+            if(sandboxId == null) {
                 contentString = contentString.replaceAll("(\"_index\".*:)(.*\")(.*\",)", "$1$2global_index_$3");
+            }
             else {
                 List<String> allMatches = new ArrayList<>();
                 Matcher m = Pattern.compile("(\"_index\".*:)(.*\")(.*\",)").matcher(contentString);

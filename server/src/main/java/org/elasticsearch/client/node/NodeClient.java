@@ -133,6 +133,21 @@ public class NodeClient extends AbstractClient {
         sandboxIndices.clear();
     }
 
+    //for testing purposes
+    public synchronized void setSandboxStore(){
+        sandboxStore = new HashSet<>();
+    }
+
+    //for testing purposes
+    public synchronized  void setSandboxIndices(){
+        sandboxIndices = new HashMap<>();
+    }
+
+    //for testing purposes
+    public synchronized void setSandboxLoaded(){
+        sandboxLoaded = true;
+    }
+
     public void stop(){
         if(!settings.getAsBoolean("sandbox.persist", false))
             removeSandboxes();

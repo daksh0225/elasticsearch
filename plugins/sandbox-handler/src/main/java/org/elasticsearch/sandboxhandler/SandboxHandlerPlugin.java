@@ -51,7 +51,6 @@ public class SandboxHandlerPlugin extends Plugin implements ActionPlugin {
                                              final Supplier<DiscoveryNodes> nodesInCluster) {
         ArrayList<RestHandler> list = new ArrayList<>();
         list.add(new SandboxAction());
-        list.add(new SandboxIndicesAction());
         return list;
     }
 

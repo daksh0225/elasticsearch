@@ -535,7 +535,7 @@ public class RestIndicesAction extends AbstractCatAction {
                     return;
             }
             else{
-                if(!indexName.contains("global_index_"))
+                if(indexName.contains("sandbox_index_"))
                     return;
             }
 
