@@ -25,9 +25,6 @@ import org.apache.lucene.search.spell.LevenshteinDistance;
 import org.apache.lucene.util.CollectionUtil;
 import org.elasticsearch.client.node.NodeClient;
 import org.elasticsearch.common.CheckedConsumer;
-import org.elasticsearch.common.Strings;
-import org.elasticsearch.common.bytes.BytesArray;
-import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Setting.Property;
@@ -44,8 +41,6 @@ import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.concurrent.atomic.LongAdder;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 /**
@@ -96,7 +91,6 @@ public abstract class BaseRestHandler implements RestHandler {
     @Override
     public final void handleRequest(RestRequest request, RestChannel channel, NodeClient client) throws Exception {
         // prepare the request for execution; has the side effect of touching the request parameters
-        request = handleIndicesName(request, client, handleSandboxHeader(request, client));
         final RestChannelConsumer action = prepareRequest(request, client);
 
         // validate unconsumed params, but we must exclude params used to format the response
@@ -119,65 +113,6 @@ public abstract class BaseRestHandler implements RestHandler {
         usageCount.increment();
         // execute the action
         action.accept(channel);
-    }
-
-    public String handleSandboxHeader(RestRequest request, NodeClient client){
-        if(request.getHeaders().containsKey("Sandbox")){
-            String sandboxId = request.getHeaders().get("Sandbox").get(0);
-            if(!client.sandboxContains(sandboxId))
-                throw new IllegalArgumentException("Invalid Sandbox Id provided");
-            return sandboxId;
-        }
-        else
-            return null;
-    }
-
-    @Override
-    public RestRequest handleIndicesName(RestRequest request, NodeClient client, String sandboxId){
-        if(request.params().containsKey("index")) {
-            String[] indices = Strings.splitStringByCommaToArray(request.params().get("index"));
-            for(int i=0;i<indices.length;i++){
-                String clusterName = null;
-                if(indices[i].contains(":")) {
-                    String[] slices = Strings.split(indices[i], ":");
-                    assert slices != null;
-                    indices[i] = slices[1];
-                    clusterName = slices[0];
-                }
-                if(!(indices[i].equals("*") || indices[i].equals("_all"))){
-                    if(sandboxId != null) {
-                        client.addSandboxIndex(sandboxId, indices[i]);
-                        indices[i] = "sandbox_index_" + sandboxId + "_" + indices[i];
-                    }
-                    else
-                        indices[i] = "global_index_" + indices[i];
-                }
-                if(clusterName != null)
-                    indices[i] = clusterName+":"+indices[i];
-            }
-            String newIndexParam = Strings.arrayToCommaDelimitedString(indices);
-            request.params().replace("index", newIndexParam);
-        }
-        BytesReference content = request.content(false);
-        String contentString = content.utf8ToString();
-        if(contentString.contains("\"_index\":") || contentString.contains("\"_index\" :")){
-            if(sandboxId == null) {
-                contentString = contentString.replaceAll("(\"_index\".*:)(.*\")(.*\",)", "$1$2global_index_$3");
-            }
-            else {
-                List<String> allMatches = new ArrayList<>();
-                Matcher m = Pattern.compile("(\"_index\".*:)(.*\")(.*\",)").matcher(contentString);
-                while(m.find()){
-                    allMatches.add(m.group(3).replace("\",", ""));
-                }
-                for(String index: allMatches){
-                    client.addSandboxIndex(sandboxId, index);
-                }
-                contentString = contentString.replaceAll("(\"_index\".*:)(.*\")(.*\",)", "$1$2sandbox_index_" + sandboxId + "_$3");
-            }
-            request.updateContent(new BytesArray(contentString));
-        }
-        return request;
     }
 
     protected final String unrecognized(

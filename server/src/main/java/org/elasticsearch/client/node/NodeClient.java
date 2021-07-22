@@ -19,27 +19,21 @@
 
 package org.elasticsearch.client.node;
 
-import org.elasticsearch.action.*;
-import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
-import org.elasticsearch.action.search.SearchRequest;
-import org.elasticsearch.action.search.SearchResponse;
+import org.elasticsearch.action.ActionListener;
+import org.elasticsearch.action.ActionRequest;
+import org.elasticsearch.action.ActionResponse;
+import org.elasticsearch.action.ActionType;
 import org.elasticsearch.action.support.TransportAction;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.client.support.AbstractClient;
 import org.elasticsearch.cluster.node.DiscoveryNode;
-import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.search.SearchHit;
 import org.elasticsearch.tasks.Task;
 import org.elasticsearch.tasks.TaskListener;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.RemoteClusterService;
 
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
-import java.util.Set;
-import java.util.Locale;
 import java.util.function.Supplier;
 
 /**
@@ -54,10 +48,6 @@ public class NodeClient extends AbstractClient {
      */
     private Supplier<String> localNodeId;
     private RemoteClusterService remoteClusterService;
-    private boolean sandboxEnabled;
-    private Set<String> sandboxStore;
-    private Map<String, Set<String>> sandboxIndices;
-    private boolean sandboxLoaded;
 
     public NodeClient(Settings settings, ThreadPool threadPool) {
         super(settings, threadPool);
@@ -68,89 +58,6 @@ public class NodeClient extends AbstractClient {
         this.actions = actions;
         this.localNodeId = localNodeId;
         this.remoteClusterService = remoteClusterService;
-        this.sandboxEnabled = true;
-        this.sandboxStore = new HashSet<>();
-        this.sandboxIndices = new HashMap<>();
-        this.sandboxLoaded = false;
-    }
-
-    public synchronized void loadSandboxes(){
-        try {
-            ActionFuture<SearchResponse> response = search(new SearchRequest("global_index_sandboxes"));
-            SearchResponse searchResponse = response.get();
-            if (searchResponse != null) {
-                SearchHit[] hits = searchResponse.getInternalResponse().hits().getHits();
-                for (SearchHit hit : hits) {
-                    String source = hit.getSourceAsString();
-                    if (source != null) {
-                        String sandboxId = source.substring(14, 36);
-                        sandboxStore.add(sandboxId);
-                        sandboxIndices.put(sandboxId, new HashSet<>());
-                    }
-                }
-            }
-        }
-        catch (Exception e){
-            System.err.println(e.getMessage());
-        }
-    }
-
-    public synchronized boolean getSandboxEnabled(){
-        return sandboxEnabled;
-    }
-
-    public synchronized String getSandboxId(){
-        String sandboxId = UUIDs.randomBase64UUID().toLowerCase(Locale.ROOT);
-        sandboxStore.add(sandboxId);
-        sandboxIndices.put(sandboxId, new HashSet<>());
-        return sandboxId;
-    }
-
-    public synchronized void addSandboxIndex(String sandbox, String index){
-        sandboxIndices.get(sandbox).add(index);
-    }
-
-    public synchronized Boolean sandboxContains(String sandboxId){
-        if(!sandboxLoaded && settings.getAsBoolean("sandbox.persist", false)) {
-            loadSandboxes();
-            sandboxLoaded = true;
-        }
-        return sandboxStore.contains(sandboxId);
-    }
-
-    public synchronized Set<String> getSandboxName() { return sandboxStore; }
-
-    public synchronized Map<String, Set<String>> getSandboxIndices() { return sandboxIndices; }
-
-    public synchronized void removeSandboxes(){
-        for(Map.Entry<String, Set<String>> entry: sandboxIndices.entrySet()){
-            String sandboxId = entry.getKey();
-            Set<String> indices = entry.getValue();
-            for(String index: indices){
-                this.admin().indices().delete(new DeleteIndexRequest("sandbox_index_"+sandboxId+"_"+index));
-            }
-        }
-        sandboxIndices.clear();
-    }
-
-    //for testing purposes
-    public synchronized void setSandboxStore(){
-        sandboxStore = new HashSet<>();
-    }
-
-    //for testing purposes
-    public synchronized  void setSandboxIndices(){
-        sandboxIndices = new HashMap<>();
-    }
-
-    //for testing purposes
-    public synchronized void setSandboxLoaded(){
-        sandboxLoaded = true;
-    }
-
-    public void stop(){
-        if(!settings.getAsBoolean("sandbox.persist", false))
-            removeSandboxes();
     }
 
     @Override

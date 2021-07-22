@@ -19,11 +19,7 @@
 
 package org.elasticsearch.sandboxhandler;
 
-import org.elasticsearch.action.ActionFuture;
-import org.elasticsearch.action.get.GetRequest;
 import org.elasticsearch.action.index.IndexRequest;
-import org.elasticsearch.action.search.SearchRequest;
-import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.client.node.NodeClient;
 import org.elasticsearch.common.Table;
 import org.elasticsearch.common.xcontent.XContentBuilder;
@@ -31,15 +27,16 @@ import org.elasticsearch.rest.BytesRestResponse;
 import org.elasticsearch.rest.RestRequest;
 import org.elasticsearch.rest.RestStatus;
 import org.elasticsearch.rest.action.cat.AbstractCatAction;
-import org.elasticsearch.search.SearchHit;
 
 import java.util.List;
 
 import static java.util.Arrays.asList;
 import static java.util.Collections.unmodifiableList;
 import static org.elasticsearch.rest.RestRequest.Method.GET;
+import static org.elasticsearch.sandboxhandler.SandboxHandlerPlugin.sandboxService;
 
 public class SandboxAction extends AbstractCatAction {
+
     @Override
     public String getName() {
         return "sandbox_handler";
@@ -56,19 +53,14 @@ public class SandboxAction extends AbstractCatAction {
         return channel -> {
             try{
                 XContentBuilder builder = channel.newBuilder();
-                if(client.getSandboxEnabled()){
-                    String sandboxName = client.getSandboxId();
-                    builder.startObject().field("sandboxId", sandboxName).endObject();
+                String sandboxId = sandboxService.getSandbox();
+                builder.startObject().field("sandboxId", sandboxId).endObject();
 
-                    if(client.settings().getAsBoolean("sandbox.persist", false)) {
-                        IndexRequest indexRequest = new IndexRequest("global_index_sandboxes");
-                        indexRequest.source("sandboxId", sandboxName);
-                        indexRequest.setRefreshPolicy("");
-                        client.index(indexRequest);
-                    }
-                }
-                else {
-                    builder.startObject().field("Message", "Sandboxing not enabled on this node").endObject();
+                if(client.settings().getAsBoolean("sandbox.persist", false)) {
+                    IndexRequest indexRequest = new IndexRequest("global_index_sandboxes");
+                    indexRequest.source("sandboxId", sandboxId);
+                    indexRequest.setRefreshPolicy("");
+                    client.index(indexRequest);
                 }
                 channel.sendResponse(new BytesRestResponse(RestStatus.OK, builder));
             } catch (final Exception e) {

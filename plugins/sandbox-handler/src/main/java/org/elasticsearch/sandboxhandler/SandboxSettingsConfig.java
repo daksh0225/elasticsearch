@@ -29,7 +29,8 @@ import java.nio.file.Path;
 
 public class SandboxSettingsConfig {
 
-    static final Setting<Boolean> SANDBOX_PERSIST_SETTING = Setting.boolSetting("sandbox.persist", false, Setting.Property.NodeScope, Setting.Property.Dynamic);
+    static final Setting<Boolean> SANDBOX_PERSIST_SETTING =
+        Setting.boolSetting("sandbox.persist", false, Setting.Property.NodeScope, Setting.Property.Dynamic);
 
     private final Boolean persist;
 

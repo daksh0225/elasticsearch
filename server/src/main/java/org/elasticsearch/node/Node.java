@@ -823,7 +823,7 @@ public class Node implements Closeable {
         }
         logger.info("stopping ...");
 
-        injector.getInstance(NodeClient.class).stop();
+        pluginLifecycleComponents.forEach(LifecycleComponent::stop);
 
         injector.getInstance(ResourceWatcherService.class).stop();
         injector.getInstance(HttpServerTransport.class).stop();
@@ -844,7 +844,6 @@ public class Node implements Closeable {
         injector.getInstance(SearchService.class).stop();
         injector.getInstance(TransportService.class).stop();
 
-        pluginLifecycleComponents.forEach(LifecycleComponent::stop);
         // we should stop this last since it waits for resources to get released
         // if we had scroll searchers etc or recovery going on we wait for to finish.
         injector.getInstance(IndicesService.class).stop();

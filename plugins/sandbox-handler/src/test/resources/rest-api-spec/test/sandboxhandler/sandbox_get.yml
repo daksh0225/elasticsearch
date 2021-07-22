@@ -3,4 +3,4 @@
   - do:
       sandbox.get: {}
 
-  - match: { sandboxId:   '/.{22}/' }
+  - match: { sandboxId:   '/.{21}./' }
