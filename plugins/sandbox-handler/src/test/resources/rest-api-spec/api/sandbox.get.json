@@ -1,0 +1,17 @@
+{
+  "sandbox.get": {
+    "documentation": {
+      "url": "https://www.elastic.co/guide/en/elasticsearch/plugins/current/plugin-authors.html",
+      "description": "Get a sandbox id"
+    },
+    "stability" : "stable",
+    "url": {
+      "paths": [
+        {
+          "path" : "/_sandbox/get",
+          "methods" : ["GET"]
+        }
+      ]
+    }
+  }
+}

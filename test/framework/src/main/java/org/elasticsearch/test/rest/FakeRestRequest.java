@@ -52,7 +52,7 @@ public class FakeRestRequest extends RestRequest {
 
         private final Method method;
         private final String uri;
-        private final BytesReference content;
+        private BytesReference content;
         private final Map<String, List<String>> headers;
 
         private FakeHttpRequest(Method method, String uri, BytesReference content, Map<String, List<String>> headers) {
@@ -70,6 +70,11 @@ public class FakeRestRequest extends RestRequest {
         @Override
         public String uri() {
             return uri;
+        }
+
+        @Override
+        public void updateContent(BytesReference content){
+            this.content = content;
         }
 
         @Override

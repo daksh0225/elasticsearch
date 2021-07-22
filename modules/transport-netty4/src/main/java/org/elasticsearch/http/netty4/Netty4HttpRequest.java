@@ -51,7 +51,7 @@ public class Netty4HttpRequest implements HttpRequest {
     private final AtomicBoolean released;
     private final FullHttpRequest request;
     private final boolean pooled;
-    private final BytesReference content;
+    private BytesReference content;
 
     Netty4HttpRequest(FullHttpRequest request, int sequence) {
         this(request, new HttpHeadersMap(request.headers()), sequence, new AtomicBoolean(false), true,
@@ -115,6 +115,11 @@ public class Netty4HttpRequest implements HttpRequest {
     public BytesReference content() {
         assert released.get() == false;
         return content;
+    }
+
+    @Override
+    public void updateContent(BytesReference content){
+        this.content = content;
     }
 
     @Override

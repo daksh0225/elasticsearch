@@ -212,6 +212,10 @@ public class RestRequest implements ToXContent.Params {
         return content(false).length() > 0;
     }
 
+    public void updateContent(BytesReference content){
+        httpRequest.updateContent(content);
+    }
+
     public BytesReference content() {
         return content(true);
     }
