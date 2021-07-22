@@ -417,21 +417,21 @@ POST _reindex
 [[docs-reindex-api-query-params]]
 ==== {api-query-parms-title}
 
-include::{docdir}/rest-api/common-parms.asciidoc[tag=refresh]
+include::{es-repo-dir}/rest-api/common-parms.asciidoc[tag=refresh]
 
-include::{docdir}/rest-api/common-parms.asciidoc[tag=timeout]
+include::{es-repo-dir}/rest-api/common-parms.asciidoc[tag=timeout]
 
-include::{docdir}/rest-api/common-parms.asciidoc[tag=wait_for_active_shards]
+include::{es-repo-dir}/rest-api/common-parms.asciidoc[tag=wait_for_active_shards]
 
-include::{docdir}/rest-api/common-parms.asciidoc[tag=wait_for_completion]
+include::{es-repo-dir}/rest-api/common-parms.asciidoc[tag=wait_for_completion]
 
-include::{docdir}/rest-api/common-parms.asciidoc[tag=requests_per_second]
+include::{es-repo-dir}/rest-api/common-parms.asciidoc[tag=requests_per_second]
 
-include::{docdir}/rest-api/common-parms.asciidoc[tag=scroll]
+include::{es-repo-dir}/rest-api/common-parms.asciidoc[tag=scroll]
 
-include::{docdir}/rest-api/common-parms.asciidoc[tag=slices]
+include::{es-repo-dir}/rest-api/common-parms.asciidoc[tag=slices]
 
-include::{docdir}/rest-api/common-parms.asciidoc[tag=max_docs]
+include::{es-repo-dir}/rest-api/common-parms.asciidoc[tag=max_docs]
 
 [[docs-reindex-api-request-body]]
 ==== {api-request-body-title}
@@ -936,11 +936,10 @@ using basic auth or the password will be sent in plain text.
 There are a range of <<reindex-ssl,settings>> available to configure the behaviour of the
  `https` connection.
 
-Remote hosts have to be explicitly whitelisted in elasticsearch.yml using the
+Remote hosts have to be explicitly allowed in elasticsearch.yml using the
 `reindex.remote.whitelist` property. It can be set to a comma delimited list
-of allowed remote `host` and `port` combinations (e.g.
-`otherhost:9200, another:9200, 127.0.10.*:9200, localhost:*`). Scheme is
-ignored by the whitelist -- only host and port are used, for example:
+of allowed remote `host` and `port` combinations. Scheme is
+ignored, only the host and port are used. For example:
 
 
 [source,yaml]
@@ -948,12 +947,15 @@ ignored by the whitelist -- only host and port are used, for example:
 reindex.remote.whitelist: "otherhost:9200, another:9200, 127.0.10.*:9200, localhost:*"
 --------------------------------------------------
 
-The whitelist must be configured on any nodes that will coordinate the reindex.
+The list of allowed hosts must be configured on any nodes that will coordinate the reindex.
 
 This feature should work with remote clusters of any version of Elasticsearch
 you are likely to find. This should allow you to upgrade from any version of
 Elasticsearch to the current version by reindexing from a cluster of the old
 version.
+
+WARNING: {es} does not support forward compatibility across major versions. For
+example, you cannot reindex from a 7.x cluster into a 6.x cluster.
 
 To enable queries sent to older versions of Elasticsearch the `query` parameter
 is sent directly to the remote host without validation or modification.

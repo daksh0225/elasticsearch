@@ -82,7 +82,7 @@ restResources {
   }
 }
 
-dependencyLicenses {
+tasks.named("dependencyLicenses").configure {
   mapping from: /apache-mime4j-.*/, to: 'apache-mime4j'
 }
 
@@ -103,6 +103,6 @@ if (BuildParams.inFipsJvm) {
   // rather than provide a long list of exclusions, disable the check on FIPS.
   jarHell.enabled = false
   test.enabled = false
-  integTest.enabled = false;
-  testingConventions.enabled = false;
+  integTest.enabled = false
+  testingConventions.enabled = false
 }

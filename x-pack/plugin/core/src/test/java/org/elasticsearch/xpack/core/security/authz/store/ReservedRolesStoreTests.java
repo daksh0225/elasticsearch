@@ -609,6 +609,9 @@ public class ReservedRolesStoreTests extends ESTestCase {
         assertThat(remoteMonitoringAgentRole.cluster().check(ActivateWatchAction.NAME, request, authentication), is(false));
         assertThat(remoteMonitoringAgentRole.cluster().check(WatcherServiceAction.NAME, request, authentication), is(false));
         assertThat(remoteMonitoringAgentRole.cluster().check(DelegatePkiAuthenticationAction.NAME, request, authentication), is(false));
+        // ILM
+        assertThat(remoteMonitoringAgentRole.cluster().check(GetLifecycleAction.NAME, request, authentication), is(true));
+        assertThat(remoteMonitoringAgentRole.cluster().check(PutLifecycleAction.NAME, request, authentication), is(true));
 
         // we get this from the cluster:monitor privilege
         assertThat(remoteMonitoringAgentRole.cluster().check(WatcherStatsAction.NAME, request, authentication), is(true));
@@ -1395,7 +1398,7 @@ public class ReservedRolesStoreTests extends ESTestCase {
         assertThat(role.indices().allowedIndicesMatcher(IndexAction.NAME).test("foo"), is(false));
 
         ZonedDateTime now = ZonedDateTime.now(ZoneOffset.UTC);
-        String historyIndex = HistoryStoreField.getHistoryIndexNameForTime(now);
+        String historyIndex = HistoryStoreField.getHistoryIndexNameForTime(now, null);
         for (String index : new String[]{ Watch.INDEX, historyIndex, TriggeredWatchStoreField.INDEX_NAME }) {
             assertOnlyReadAllowed(role, index);
         }
@@ -1429,7 +1432,7 @@ public class ReservedRolesStoreTests extends ESTestCase {
         assertThat(role.indices().allowedIndicesMatcher(IndexAction.NAME).test(TriggeredWatchStoreField.INDEX_NAME), is(false));
 
         ZonedDateTime now = ZonedDateTime.now(ZoneOffset.UTC);
-        String historyIndex = HistoryStoreField.getHistoryIndexNameForTime(now);
+        String historyIndex = HistoryStoreField.getHistoryIndexNameForTime(now, null);
         for (String index : new String[]{ Watch.INDEX, historyIndex }) {
             assertOnlyReadAllowed(role, index);
         }
